@@ -7,7 +7,7 @@ dotenv.config();
 const client = new MongoClient(process.env.MONGODB_URL);
 
 class ProductsService {
-  getAllProducts = async (page, limit) => {
+  getAllProducts = async (page, limit, searchQuery) => {
     try {
       await client.connect();
 
@@ -17,16 +17,23 @@ class ProductsService {
 
       const products = await dbo.collection("products");
 
+      let query = {};
+
+      if (searchQuery && searchQuery.name) {
+        query.name = { $regex: new RegExp(searchQuery.name, "i") };
+      }
+
+      const totalCount = await products.countDocuments(query);
+
       const productsCollection = await products
-        .find()
+        .find(query)
         .skip((page - 1) * limit)
         .limit(limit)
         .toArray();
 
-      return productsCollection;
+      return { products: productsCollection, totalCount };
     } finally {
-      client.close();
-
+      await client.close();
       console.log("disconnect to mongo");
     }
   };

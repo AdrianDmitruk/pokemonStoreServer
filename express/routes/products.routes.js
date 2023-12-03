@@ -3,30 +3,24 @@ const router = express.Router();
 
 const ProductsService = require("../services/products.service");
 
-router.get("/:id", async (req, res) => {
-  try {
-    const productId = parseInt(req.params.id);
-
-    const product = await ProductsService.getProduct(productId);
-
-    res.send(product);
-  } catch (err) {
-    res.status(403).send({
-      code: 403,
-      message: err.message,
-    });
-  } finally {
-    res.end();
-  }
-});
-
 router.get("/", async (req, res) => {
   try {
-    const { page, limit } = req.query;
+    const { page = 1, limit = 10, name } = req.query;
 
-    const products = await ProductsService.getAllProducts(+page, +limit);
+    const { products, totalCount } = await ProductsService.getAllProducts(
+      +page,
+      +limit,
+      { name }
+    );
 
-    res.send(products);
+    const totalPages = Math.ceil(totalCount / +limit);
+
+    res.send({
+      currentPage: +page,
+      products,
+      totalPages,
+      totalProducts: totalCount,
+    });
   } catch (err) {
     res.status(403).send({
       code: 403,
