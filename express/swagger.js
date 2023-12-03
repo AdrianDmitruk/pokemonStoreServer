@@ -6,7 +6,7 @@ const options = {
     openapi: "3.1.0",
     servers: [
       {
-        url: "https://pokemonstore.onrender.com",
+        url: "https://pokemonstoreserver.onrender.com",
       },
     ],
     components: {
