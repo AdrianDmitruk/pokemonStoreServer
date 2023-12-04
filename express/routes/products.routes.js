@@ -22,31 +22,30 @@ router.get("/:id", async (req, res) => {
 
 router.get("/", async (req, res) => {
   try {
-    const { page = 1, limit = 10, name } = req.query;
+    const { page = 1, limit = 10, name, priceFrom, priceTo } = req.query;
 
-    if (name) {
-      const { products, totalCount } = await ProductsService.getAllProducts({
-        name,
-      });
-      res.send({
-        currentPage: 1,
-        products,
-        totalPages: 1,
-        totalProducts: totalCount,
-      });
-    } else {
-      const { products, totalCount } =
-        await ProductsService.getPaginatedProducts(+page, +limit, { name });
+    // Преобразуем page и limit в целые числа
+    const pageInt = parseInt(page);
+    const limitInt = parseInt(limit);
 
-      const totalPages = Math.ceil(totalCount / +limit);
-
-      res.send({
-        currentPage: +page,
-        products,
-        totalPages,
-        totalProducts: totalCount,
-      });
+    if (isNaN(pageInt) || isNaN(limitInt)) {
+      throw new Error("Invalid page or limit values");
     }
+
+    const { products, totalCount } = await ProductsService.getAllProducts(
+      pageInt,
+      limitInt,
+      { name, priceFrom, priceTo }
+    );
+
+    const totalPages = Math.ceil(totalCount / limitInt);
+
+    res.send({
+      currentPage: pageInt,
+      products,
+      totalPages,
+      totalProducts: totalCount,
+    });
   } catch (err) {
     res.status(403).send({
       code: 403,

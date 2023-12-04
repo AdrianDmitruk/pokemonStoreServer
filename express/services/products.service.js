@@ -7,8 +7,16 @@ dotenv.config();
 const client = new MongoClient(process.env.MONGODB_URL);
 
 class ProductsService {
-  getAllProducts = async (searchQuery) => {
+  getAllProducts = async (page, limit, searchQuery) => {
     try {
+      // Проверяем, что page и limit являются целыми числами
+      const pageInt = parseInt(page);
+      const limitInt = parseInt(limit);
+
+      if (isNaN(pageInt) || isNaN(limitInt)) {
+        throw new Error("Invalid page or limit values");
+      }
+
       await client.connect();
 
       console.log("connect to mongo");
@@ -23,14 +31,33 @@ class ProductsService {
         query.name = { $regex: new RegExp(searchQuery.name, "i") };
       }
 
+      if (
+        searchQuery &&
+        searchQuery.priceFrom !== undefined &&
+        searchQuery.priceTo !== undefined
+      ) {
+        query.price = {
+          $gte: parseFloat(searchQuery.priceFrom),
+          $lte: parseFloat(searchQuery.priceTo),
+        };
+      } else if (searchQuery && searchQuery.priceFrom !== undefined) {
+        query.price = { $gte: parseFloat(searchQuery.priceFrom) };
+      } else if (searchQuery && searchQuery.priceTo !== undefined) {
+        query.price = { $lte: parseFloat(searchQuery.priceTo) };
+      }
+
       const totalCount = await products.countDocuments(query);
 
-      const productsCollection = await products.find(query).toArray();
+      const productsCollection = await products
+        .find(query)
+        .skip((pageInt - 1) * limitInt)
+        .limit(limitInt)
+        .toArray();
 
       return { products: productsCollection, totalCount };
     } finally {
       await client.close();
-      console.log("disconnect to mongo");
+      console.log("disconnect from mongo");
     }
   };
 
