@@ -7,7 +7,34 @@ dotenv.config();
 const client = new MongoClient(process.env.MONGODB_URL);
 
 class ProductsService {
-  getAllProducts = async (page, limit, searchQuery) => {
+  getAllProducts = async (searchQuery) => {
+    try {
+      await client.connect();
+
+      console.log("connect to mongo");
+
+      const dbo = client.db("pokemonStore");
+
+      const products = await dbo.collection("products");
+
+      let query = {};
+
+      if (searchQuery && searchQuery.name) {
+        query.name = { $regex: new RegExp(searchQuery.name, "i") };
+      }
+
+      const totalCount = await products.countDocuments(query);
+
+      const productsCollection = await products.find(query).toArray();
+
+      return { products: productsCollection, totalCount };
+    } finally {
+      await client.close();
+      console.log("disconnect to mongo");
+    }
+  };
+
+  getPaginatedProducts = async (page, limit, searchQuery) => {
     try {
       await client.connect();
 
